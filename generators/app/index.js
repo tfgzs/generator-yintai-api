@@ -14,7 +14,6 @@ var APIGenerator = module.exports = yeoman.generators.Base.extend({
     prompting: function () {
         var done = this.async();
 
-        // Have Yeoman greet the user.
         var logo = "  _   _       ______ _____             \n" +
             " | \\ | |     |  ____|  __ \\            \n" +
             " |  \\| | ___ | |__  | |  | | _____   __\n" +
@@ -22,55 +21,56 @@ var APIGenerator = module.exports = yeoman.generators.Base.extend({
             " | |\\  | (_) | |    | |__| |  __/\\ V / \n" +
             " |_| \\_|\\___/|_|    |_____/ \\___| \\_/  \n" +
             "                                       \n";
-        this.log(chalk.green(logo) + 'Welcome to the supreme ' + chalk.red('generator-yintai-springboot') + ' generator!' + '\n' + chalk.yellow('Usually the default prompt is recommended. '));
+        this.log(chalk.green(logo) + '欢迎使用' + chalk.red('generator-groovy-api') + ' 代码生成器!' + '\n' + chalk.yellow('Usually the default prompt is recommended. '));
 
         var prompts = [
             {
                 type: 'string',
                 name: 'organizationName',
-                message: '(1/11) What is the organization\'s name of service?',
-                default: 'yintai'
+                message: '(1/11) 组织名称?',
+                default: 'net.tfgzs'
             },
             {
                 type: 'string',
                 name: 'extraMavenRepo',
-                message: '(2/11) What private maven repository would you like to use? (eg. http://nexus.yintai.org:8081/nexus/content/groups/public/)'
+                message: '(2/11) 私有maven仓库地址?',
+                default: 'http://nexus.yintai.org:8081/nexus/content/groups/public/'
             },
             {
                 type: 'string',
                 name: 'authorName',
-                message: '(3/11) What is the author\'s name of service?',
+                message: '(3/11) 作者的名字?',
                 default: this.user.git.name()
             },
             {
                 type: 'string',
                 name: 'authorEmail',
-                message: '(4/11) What is the author\'s email of service?',
+                message: '(4/11) 作者的邮箱?',
                 default: this.user.git.email()
             },
             {
                 type: 'string',
                 name: 'baseName',
-                message: '(5/11) What is the base name of service?',
+                message: '(5/11) 项目的名字?',
                 default: this.appname
             },
             {
                 type: 'string',
                 name: 'packageName',
-                message: '(6/11) What is the package name of service?',
+                message: '(6/11) 项目基础包名?',
                 default: function (response) {
-                    return 'com.' + response.organizationName + '.' + response.baseName.replace(/\-/g, '');
+                    return response.organizationName + '.' + response.baseName.replace(/\-/g, '');
                 }
             },
             {
                 type: 'string',
                 name: 'description',
-                message: '(7/11) What is the description of service?'
+                message: '(7/11) 项目描述?'
             },
             {
                 type: 'confirm',
                 name: 'hasSample',
-                message: '(8/11) Would you like to contains a sample?',
+                message: '(8/11) 您想生成一些代码案例吗?',
                 default: true
             }
         ];
@@ -86,10 +86,10 @@ var APIGenerator = module.exports = yeoman.generators.Base.extend({
     writing: function () {
         var sourceDir = "src/main/groovy/";
         var resourcesDir = "src/main/resources/";
-        var testDir = "src/test/groovy/";
+
         var packageDir = this.props.packageName.replace(/\./g, '/') + '/';
 
-        var sampleDir = sourceDir + "com/yintai/sample/";
+        var sampleDir = sourceDir + "net/tfgzs/sample/";
         var sampleDestDir = sourceDir + packageDir + "sample/";
 
         //gradle
@@ -100,8 +100,6 @@ var APIGenerator = module.exports = yeoman.generators.Base.extend({
         this.fs.copy(this.templatePath('gradle/wrapper/gradle-wrapper.jar'), this.destinationPath('gradle/wrapper/gradle-wrapper.jar'));
         this.fs.copy(this.templatePath('gradle/wrapper/gradle-wrapper.properties'), this.destinationPath('gradle/wrapper/gradle-wrapper.properties'));
 
-        //TODO test
-
         //readme
         this.template('README.md', 'README.md', this.props, {'interpolate': /<%=([\s\S]+?)%>/g});
 
@@ -110,11 +108,8 @@ var APIGenerator = module.exports = yeoman.generators.Base.extend({
 
         //sample
         if (this.props.hasSample) {
-            this.template(sampleDir + "service/UserCriteria.groovy", sampleDestDir + "service/UserCriteria.groovy", this.props);
-            this.template(sampleDir + "service/UserDTO.groovy", sampleDestDir + "service/UserDTO.groovy", this.props);
-            this.template(sampleDir + "service/UserService.groovy", sampleDestDir + "service/UserService.groovy", this.props);
-            this.template(sampleDir + "facade/UserDTO.groovy", sampleDestDir + "facade/UserDTO.groovy", this.props);
-            this.template(sampleDir + "facade/UserFacade.groovy", sampleDestDir + "facade/UserFacade.groovy", this.props);
+            this.template(sampleDir + "dto/UserDTO.groovy", sampleDestDir + "dto/UserDTO.groovy", this.props);
+            this.template(sampleDir + "UserFacade.groovy", sampleDestDir + "UserFacade.groovy", this.props);
         }
 
     },

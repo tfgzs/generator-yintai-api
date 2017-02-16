@@ -6,20 +6,18 @@ buildscript {
     }
 }
 
-
-group '<%=organizationName%>'
-
+apply plugin: 'java'
 apply plugin: 'groovy'
-apply plugin: 'eclipse'
 apply plugin: 'idea'
 
+
+group '<%=organizationName%>'
 jar {
     baseName = '<%= baseName %>'
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-
 [compileJava, compileTestJava, compileGroovy, compileTestGroovy]*.options*.encoding = 'UTF-8'
 
 repositories {
@@ -30,17 +28,163 @@ repositories {
 
 dependencies {
     compile 'org.codehaus.groovy:groovy-all:2.4.6'
-    compile('org.nofdev:service-core:1.0.3')
-    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
-}
-
-eclipse {
-    classpath {
-        containers.remove('org.eclipse.jdt.launching.JRE_CONTAINER')
-        containers 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8'
-    }
+    compile 'org.nofdev:service-core:1.0.3'
 }
 
 task wrapper(type: Wrapper) {
     gradleVersion = '2.7'
+}
+
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+
+def isMvnCentral
+def isMvnSign
+if (hasProperty("isMavenCentral")) {
+    isMvnCentral = isMavenCentral
+}
+if (hasProperty("isMavenSign")) {
+    isMvnSign = isMavenSign
+}
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+ext {
+    pomFilePath = "${project.projectDir}/tmp/pom.xml"
+    pomFile = file(pomFilePath)
+}
+configurations {
+    pom
+}
+
+// summarize artifacts
+artifacts {
+    archives jar
+    archives sourceJar
+    archives javadocJar
+    if (pomFile.exists()) {
+        pom pomFile
+    }
+}
+
+// sign all artifacts
+task signJars(type: Sign, dependsOn: [Jar, javadocJar, sourceJar]) {
+    sign configurations.archives
+}
+
+// sign pom
+task signPom(type: Sign) {
+    sign configurations.pom
+}
+
+// defining which tasks should be called
+if (project.ext.pomFile.exists() && isMvnCentral == "true" && isMvnSign == "true") {
+    task preparePublication(dependsOn: [signJars, signPom])
+} else {
+//    task preparePublication(dependsOn: signJars)
+}
+
+// extract signature file and give them proper name
+def getSignatureFiles = {
+    def allFiles = project.tasks.signJars.signatureFiles.collect { it }
+    def signedSources = allFiles.find { it.name.contains('-sources') }
+    def signedJavadoc = allFiles.find { it.name.contains('-javadoc') }
+    def signedJar = (allFiles - [signedSources, signedJavadoc])[0]
+    return [
+            [archive: signedSources, classifier: 'sources', extension: 'jar.asc'],
+            [archive: signedJavadoc, classifier: 'javadoc', extension: 'jar.asc'],
+            [archive: signedJar, classifier: null, extension: 'jar.asc']
+    ]
+}
+
+// extract pom signature
+def getPomSignature = {
+    return project.tasks.signPom.signatureFiles.collect { it }[0]
+}
+
+// ./gradlew clean pP publish -PmavenUrl=xxx -PmavenUser=xxx -PmavenPassword=xxx -Psigning.keyId=xxx -Psigning.password=xxx -Psigning.secretKeyRingFile=xxx -PisMavenCentral=true
+publishing {
+    publications {
+        Jar(MavenPublication) {
+            from components.java
+            pom.withXml {
+                // add required elements
+                asNode().children().last() + {
+                    resolveStrategy = Closure.DELEGATE_FIRST
+                    name '<%= baseName %>'
+                    description '<%= description %>'
+                    url 'http://gitlab.yintai.org/architect/service-topic-producer'
+                    scm {
+                        url 'http://gitlab.yintai.org/architect/service-topic-producer.git'
+                        connection 'scm:git:git@gitlab.yintai.org:architect/service-topic-producer.git'
+                        developerConnection 'scm:git:ssh:git@gitlab.yintai.org:architect/service-topic-producer.git'
+                    }
+                    licenses {
+                        license {
+                            name 'The Apache Software License, Version 2.0'
+                            url 'http://www.apache.org/license/LICENSE-2.0.txt'
+                            distribution 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id 'mengqiang'
+                            name 'Quincy Meng'
+                            email 'mengqiang81@gmail.com'
+                        }
+                        developer {
+                            id 'tfgzs'
+                            name 'Tengfei liu'
+                            email '867805932@qq.com'
+                        }
+                    }
+                }
+            }
+            artifact sourceJar
+            artifact javadocJar
+
+            if (project.ext.pomFile.exists() && isMvnCentral == "true" && isMvnSign == "true") {
+                getSignatureFiles().each { signature ->
+                    Artifact(signature.archive) {
+                        classifier = signature.classifier
+                        extension = signature.extension
+                    }
+                }
+                Artifact(getPomSignature()) {
+                    classifier = null
+                    extension = 'pom.asc'
+                }
+            }
+        }
+    }
+    repositories {
+        if (project.ext.pomFile.exists() && isMvnCentral == "true") {
+            maven {
+                url mavenUrl
+                credentials {
+                    username mavenUser
+                    password mavenPassword
+                }
+            }
+        } else {
+            mavenLocal()
+        }
+    }
+}
+
+model {
+    if (isMvnCentral == "true") {
+        tasks.generatePomFileForJarPublication {
+            destination = project.ext.pomFile
+        }
+    }
 }

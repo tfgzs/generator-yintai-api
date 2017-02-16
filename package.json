@@ -1,13 +1,18 @@
 {
-  "name": "generator-yintai-api",
+  "name": "generator-groovy-api",
   "version": "0.0.1",
-  "description": "A best practice for yintai micro service api project",
-  "homepage": "https://github.com/yintai/generator-yintai-api",
+  "description": "A best practice for groovy micro service api project",
+  "homepage": "https://github.com/tfgzs/generator-groovy-api",
   "author": {
     "name": "mengqiang",
     "email": "mengqiang81@gmail.com",
     "url": "https://github.com/mengqiang81"
   },
+  "contributors":[{
+    "name": "tfgzs",
+    "email": "867805932@qq.com",
+    "url": "https://github.com/tfgzs"
+  }],
   "files": [
     "generators"
   ],
@@ -33,7 +38,7 @@
     "gulp-nsp": "^2.1.0",
     "gulp-coveralls": "^0.1.0"
   },
-  "repository": "yintai/generator-yintai-springboot",
+  "repository": "tfgzs/generator-groovy-api",
   "scripts": {
     "prepublish": "gulp prepublish",
     "test": "gulp"
